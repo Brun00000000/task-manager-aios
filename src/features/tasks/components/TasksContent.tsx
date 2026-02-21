@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { TaskList } from './TaskList'
+import { SortableTaskList } from './SortableTaskList'
 import { TaskDrawer } from './TaskDrawer'
 import { FilterBar } from './FilterBar'
 import { FilterChips } from './FilterChips'
@@ -120,7 +120,7 @@ export function TasksContent() {
         </p>
       )}
 
-      <TaskList
+      <SortableTaskList
         tasks={data?.data ?? []}
         isLoading={isLoading}
         total={total}

@@ -372,6 +372,18 @@ export class TaskRepository {
     }
   }
 
+  async reorder(userId: string, items: { id: string; position: number }[]): Promise<void> {
+    await Promise.all(
+      items.map(({ id, position }) =>
+        this.supabase
+          .from('tasks')
+          .update({ position, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .eq('user_id', userId)
+      )
+    )
+  }
+
   async listTrash(userId: string): Promise<TaskSummary[]> {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
