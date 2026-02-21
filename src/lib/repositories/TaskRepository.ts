@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
-import type { TaskCreate, TaskQuery } from '@/features/tasks/schemas/task.schema'
+import type { TaskCreate, TaskUpdate, TaskQuery } from '@/features/tasks/schemas/task.schema'
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskStatus = 'todo' | 'in_progress' | 'done'
@@ -184,5 +184,93 @@ export class TaskRepository {
         .map((tc: any) => tc.categories)
         .filter(Boolean) as CategorySummary[],
     }
+  }
+
+  async update(userId: string, id: string, data: TaskUpdate): Promise<TaskSummary> {
+    const { category_ids, ...fields } = data
+
+    if (Object.keys(fields).length > 0) {
+      const { error } = await this.supabase
+        .from('tasks')
+        .update({ ...fields, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+
+      if (error) throw new Error(`TaskRepository.update failed: ${error.message}`)
+    }
+
+    if (category_ids !== undefined) {
+      await this.supabase.from('task_categories').delete().eq('task_id', id)
+      if (category_ids.length > 0) {
+        const { error: catErr } = await this.supabase
+          .from('task_categories')
+          .insert(category_ids.map((category_id) => ({ task_id: id, category_id })))
+        if (catErr) throw new Error(`TaskRepository.update categories failed: ${catErr.message}`)
+      }
+    }
+
+    const result = await this.getById(userId, id)
+    if (!result) throw new Error('Task not found after update')
+    return result
+  }
+
+  async softDelete(userId: string, id: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('tasks')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', userId)
+
+    if (error) throw new Error(`TaskRepository.softDelete failed: ${error.message}`)
+  }
+
+  async restore(userId: string, id: string): Promise<TaskSummary> {
+    const { error } = await this.supabase
+      .from('tasks')
+      .update({ deleted_at: null })
+      .eq('id', id)
+      .eq('user_id', userId)
+
+    if (error) throw new Error(`TaskRepository.restore failed: ${error.message}`)
+
+    const result = await this.getById(userId, id)
+    if (!result) throw new Error('Task not found after restore')
+    return result
+  }
+
+  async listTrash(userId: string): Promise<TaskSummary[]> {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const { data, error } = await this.supabase
+      .from('tasks')
+      .select(
+        `id, title, description, priority, status, due_date, position, deleted_at, created_at, updated_at,
+         task_categories(category_id, categories(id, name, color))`
+      )
+      .eq('user_id', userId)
+      .not('deleted_at', 'is', null)
+      .gte('deleted_at', thirtyDaysAgo.toISOString())
+      .order('deleted_at', { ascending: false })
+
+    if (error) throw new Error(`TaskRepository.listTrash failed: ${error.message}`)
+
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      priority: row.priority as TaskPriority,
+      status: row.status as TaskStatus,
+      due_date: row.due_date,
+      position: row.position,
+      deleted_at: row.deleted_at,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      categories: (row.task_categories ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((tc: any) => tc.categories)
+        .filter(Boolean) as CategorySummary[],
+    }))
   }
 }

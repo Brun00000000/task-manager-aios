@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
@@ -24,9 +25,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { taskCreateSchema, type TaskCreate } from '@/features/tasks/schemas/task.schema'
+import { useCreateTask } from '@/features/tasks/hooks/useCreateTask'
+import { useUpdateTask } from '@/features/tasks/hooks/useUpdateTask'
+import type { TaskSummary } from '@/lib/repositories/TaskRepository'
 
 type TaskCreateInput = z.input<typeof taskCreateSchema>
-import { useCreateTask } from '@/features/tasks/hooks/useCreateTask'
 
 interface Category {
   id: string
@@ -37,10 +40,14 @@ interface Category {
 interface TaskDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  task?: TaskSummary | null
 }
 
-export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
-  const { mutateAsync: createTask, isPending } = useCreateTask()
+export function TaskDrawer({ open, onOpenChange, task }: TaskDrawerProps) {
+  const isEditMode = !!task
+  const { mutateAsync: createTask, isPending: isCreating } = useCreateTask()
+  const { mutateAsync: updateTask, isPending: isUpdating } = useUpdateTask()
+  const isPending = isCreating || isUpdating
 
   const { data: categoriesData } = useQuery<{ data: Category[] }>({
     queryKey: ['categories'],
@@ -69,7 +76,24 @@ export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
     },
   })
 
+  useEffect(() => {
+    if (open && task) {
+      reset({
+        title: task.title,
+        description: task.description ?? '',
+        due_date: task.due_date ?? '',
+        priority: task.priority,
+        status: task.status,
+        category_ids: task.categories.map((c) => c.id),
+      })
+    } else if (!open) {
+      reset({ priority: 'medium', status: 'todo', category_ids: [] })
+    }
+  }, [open, task, reset])
+
   const selectedCategoryIds = watch('category_ids') ?? []
+  const watchedPriority = watch('priority')
+  const watchedStatus = watch('status')
 
   function toggleCategory(id: string) {
     const current = selectedCategoryIds
@@ -83,17 +107,21 @@ export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
 
   async function onSubmit(data: TaskCreate) {
     try {
-      await createTask(data)
-      toast.success('Tarefa criada com sucesso!')
-      reset()
+      if (isEditMode && task) {
+        await updateTask({ id: task.id, data })
+        toast.success('Tarefa atualizada!')
+      } else {
+        await createTask(data)
+        toast.success('Tarefa criada com sucesso!')
+      }
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao criar tarefa')
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar tarefa')
     }
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next) reset()
+    if (!next) reset({ priority: 'medium', status: 'todo', category_ids: [] })
     onOpenChange(next)
   }
 
@@ -101,7 +129,7 @@ export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Nova Tarefa</SheetTitle>
+          <SheetTitle>{isEditMode ? 'Editar Tarefa' : 'Nova Tarefa'}</SheetTitle>
         </SheetHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 py-6">
@@ -134,21 +162,15 @@ export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
           {/* Prazo */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="due_date">Prazo</Label>
-            <Input
-              id="due_date"
-              type="date"
-              {...register('due_date')}
-            />
+            <Input id="due_date" type="date" {...register('due_date')} />
           </div>
 
           {/* Prioridade */}
           <div className="flex flex-col gap-1.5">
             <Label>Prioridade</Label>
             <Select
-              defaultValue="medium"
-              onValueChange={(val) =>
-                setValue('priority', val as TaskCreate['priority'])
-              }
+              value={watchedPriority ?? 'medium'}
+              onValueChange={(val) => setValue('priority', val as TaskCreate['priority'])}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a prioridade" />
@@ -161,6 +183,26 @@ export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Status (só no modo edição) */}
+          {isEditMode && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Status</Label>
+              <Select
+                value={watchedStatus ?? 'todo'}
+                onValueChange={(val) => setValue('status', val as TaskCreate['status'])}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">A fazer</SelectItem>
+                  <SelectItem value="in_progress">Em andamento</SelectItem>
+                  <SelectItem value="done">Concluída</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Categorias */}
           {categories.length > 0 && (
@@ -180,7 +222,11 @@ export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
                       className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
                       style={
                         selected
-                          ? { backgroundColor: `${cat.color}25`, borderColor: cat.color, color: cat.color }
+                          ? {
+                              backgroundColor: `${cat.color}25`,
+                              borderColor: cat.color,
+                              color: cat.color,
+                            }
                           : {}
                       }
                     >
@@ -205,7 +251,7 @@ export function TaskDrawer({ open, onOpenChange }: TaskDrawerProps) {
               Cancelar
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? 'Criando...' : 'Criar tarefa'}
+              {isPending ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Criar tarefa'}
             </Button>
           </SheetFooter>
         </form>
