@@ -14,6 +14,7 @@ interface TaskListProps {
   limit: number
   onPageChange: (page: number) => void
   onCreateTask: () => void
+  onEditTask?: (task: TaskSummary) => void
 }
 
 export function TaskList({
@@ -24,6 +25,7 @@ export function TaskList({
   limit,
   onPageChange,
   onCreateTask,
+  onEditTask,
 }: TaskListProps) {
   const totalPages = Math.ceil(total / limit)
 
@@ -45,7 +47,7 @@ export function TaskList({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+          <TaskCard key={task.id} task={task} onEdit={onEditTask} />
         ))}
       </div>
 
