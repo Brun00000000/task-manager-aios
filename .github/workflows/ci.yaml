@@ -1,4 +1,5 @@
   name: CI
+name: CI
 
   on:
     push:
@@ -36,6 +37,7 @@
       runs-on: ubuntu-latest
       needs: quality
       continue-on-error: true
+      continue-on-error: true        # ← não bloqueia merge se falhar
       steps:
         - uses: actions/checkout@v4
 
