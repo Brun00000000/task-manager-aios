@@ -1,0 +1,208 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
+import type { z } from 'zod'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { taskCreateSchema, type TaskCreate } from '@/features/tasks/schemas/task.schema'
+import { useCreateTask } from '@/features/tasks/hooks/useCreateTask'
+import { useUpdateTask } from '@/features/tasks/hooks/useUpdateTask'
+import { CategoryMultiSelect } from './CategoryMultiSelect'
+import type { TaskSummary } from '@/lib/repositories/TaskRepository'
+
+type TaskCreateInput = z.input<typeof taskCreateSchema>
+
+interface TaskDrawerProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  task?: TaskSummary | null
+}
+
+export function TaskDrawer({ open, onOpenChange, task }: TaskDrawerProps) {
+  const isEditMode = !!task
+  const { mutateAsync: createTask, isPending: isCreating } = useCreateTask()
+  const { mutateAsync: updateTask, isPending: isUpdating } = useUpdateTask()
+  const isPending = isCreating || isUpdating
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<TaskCreateInput, unknown, TaskCreate>({
+    resolver: zodResolver(taskCreateSchema),
+    defaultValues: {
+      priority: 'medium',
+      status: 'todo',
+      category_ids: [],
+    },
+  })
+
+  useEffect(() => {
+    if (open && task) {
+      reset({
+        title: task.title,
+        description: task.description ?? '',
+        due_date: task.due_date ?? '',
+        priority: task.priority,
+        status: task.status,
+        category_ids: task.categories.map((c) => c.id),
+      })
+    } else if (!open) {
+      reset({ priority: 'medium', status: 'todo', category_ids: [] })
+    }
+  }, [open, task, reset])
+
+  const selectedCategoryIds = watch('category_ids') ?? []
+  const watchedPriority = watch('priority')
+  const watchedStatus = watch('status')
+
+  async function onSubmit(data: TaskCreate) {
+    try {
+      if (isEditMode && task) {
+        await updateTask({ id: task.id, data })
+        toast.success('Tarefa atualizada!')
+      } else {
+        await createTask(data)
+        toast.success('Tarefa criada com sucesso!')
+      }
+      onOpenChange(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar tarefa')
+    }
+  }
+
+  function handleOpenChange(next: boolean) {
+    if (!next) reset({ priority: 'medium', status: 'todo', category_ids: [] })
+    onOpenChange(next)
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{isEditMode ? 'Editar Tarefa' : 'Nova Tarefa'}</SheetTitle>
+        </SheetHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 py-6">
+          {/* Título */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="title">
+              Título <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="title"
+              placeholder="Descreva a tarefa..."
+              {...register('title')}
+            />
+            {errors.title && (
+              <p className="text-xs text-red-500">{errors.title.message}</p>
+            )}
+          </div>
+
+          {/* Descrição */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="description">Descrição</Label>
+            <Textarea
+              id="description"
+              placeholder="Detalhes adicionais (opcional)"
+              rows={3}
+              {...register('description')}
+            />
+          </div>
+
+          {/* Prazo */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="due_date">Prazo</Label>
+            <Input id="due_date" type="date" {...register('due_date')} />
+          </div>
+
+          {/* Prioridade */}
+          <div className="flex flex-col gap-1.5">
+            <Label>Prioridade</Label>
+            <Select
+              value={watchedPriority ?? 'medium'}
+              onValueChange={(val) => setValue('priority', val as TaskCreate['priority'])}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a prioridade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Baixa</SelectItem>
+                <SelectItem value="medium">Média</SelectItem>
+                <SelectItem value="high">Alta</SelectItem>
+                <SelectItem value="urgent">Urgente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status (só no modo edição) */}
+          {isEditMode && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Status</Label>
+              <Select
+                value={watchedStatus ?? 'todo'}
+                onValueChange={(val) => setValue('status', val as TaskCreate['status'])}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">A fazer</SelectItem>
+                  <SelectItem value="in_progress">Em andamento</SelectItem>
+                  <SelectItem value="done">Concluída</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Categorias */}
+          <div className="flex flex-col gap-1.5">
+            <Label>
+              Categorias{' '}
+              <span className="text-xs text-muted-foreground">(máx. 5)</span>
+            </Label>
+            <CategoryMultiSelect
+              value={selectedCategoryIds}
+              onChange={(ids) => setValue('category_ids', ids)}
+            />
+          </div>
+
+          <SheetFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Criar tarefa'}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  )
+}
