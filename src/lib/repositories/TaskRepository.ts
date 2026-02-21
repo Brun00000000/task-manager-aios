@@ -32,6 +32,17 @@ export interface TaskListResult {
   limit: number
 }
 
+export interface DashboardStats {
+  total: number
+  todo: number
+  in_progress: number
+  done: number
+  overdue: number
+  due_today: TaskSummary[]
+  upcoming: TaskSummary[]
+  activity: { date: string; completed: number }[]
+}
+
 type SupabaseDb = SupabaseClient<Database>
 
 export class TaskRepository {
@@ -237,6 +248,128 @@ export class TaskRepository {
     const result = await this.getById(userId, id)
     if (!result) throw new Error('Task not found after restore')
     return result
+  }
+
+  async getDashboardStats(userId: string): Promise<DashboardStats> {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = today.toISOString().split('T')[0]
+
+    const sevenDaysAgo = new Date(today)
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+
+    const taskSelect = `id, title, description, priority, status, due_date, position, deleted_at, created_at, updated_at,
+       task_categories(category_id, categories(id, name, color))`
+
+    const [
+      countsResult,
+      overdueResult,
+      dueTodayResult,
+      upcomingResult,
+      activityResult,
+    ] = await Promise.all([
+      // Counts per status
+      this.supabase
+        .from('tasks')
+        .select('status')
+        .eq('user_id', userId)
+        .is('deleted_at', null),
+
+      // Overdue count
+      this.supabase
+        .from('tasks')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .lt('due_date', todayStr)
+        .neq('status', 'done'),
+
+      // Due today
+      this.supabase
+        .from('tasks')
+        .select(taskSelect)
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .eq('due_date', todayStr)
+        .neq('status', 'done')
+        .order('priority', { ascending: false }),
+
+      // Upcoming: next 5 with due_date in the future
+      this.supabase
+        .from('tasks')
+        .select(taskSelect)
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .gt('due_date', todayStr)
+        .neq('status', 'done')
+        .order('due_date', { ascending: true })
+        .limit(5),
+
+      // Activity: tasks done in last 7 days
+      this.supabase
+        .from('tasks')
+        .select('updated_at')
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .eq('status', 'done')
+        .gte('updated_at', sevenDaysAgoStr)
+        .lte('updated_at', `${todayStr}T23:59:59.999Z`),
+    ])
+
+    // Process counts
+    const rows = countsResult.data ?? []
+    const total = rows.length
+    const todo = rows.filter((r) => r.status === 'todo').length
+    const in_progress = rows.filter((r) => r.status === 'in_progress').length
+    const done = rows.filter((r) => r.status === 'done').length
+
+    const mapRows = (data: typeof dueTodayResult.data): TaskSummary[] =>
+      (data ?? []).map((row) => ({
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        priority: row.priority as TaskPriority,
+        status: row.status as TaskStatus,
+        due_date: row.due_date,
+        position: row.position,
+        deleted_at: row.deleted_at,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        categories: ((row.task_categories ?? []) as any[])
+          .map((tc) => tc.categories)
+          .filter(Boolean) as CategorySummary[],
+      }))
+
+    // Build activity data for last 7 days
+    const activityMap = new Map<string, number>()
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      activityMap.set(d.toISOString().split('T')[0], 0)
+    }
+    for (const row of activityResult.data ?? []) {
+      const day = row.updated_at.split('T')[0]
+      if (activityMap.has(day)) {
+        activityMap.set(day, (activityMap.get(day) ?? 0) + 1)
+      }
+    }
+    const activity = Array.from(activityMap.entries()).map(([date, completed]) => ({
+      date,
+      completed,
+    }))
+
+    return {
+      total,
+      todo,
+      in_progress,
+      done,
+      overdue: overdueResult.count ?? 0,
+      due_today: mapRows(dueTodayResult.data),
+      upcoming: mapRows(upcomingResult.data),
+      activity,
+    }
   }
 
   async listTrash(userId: string): Promise<TaskSummary[]> {
