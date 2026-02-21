@@ -15,6 +15,7 @@ interface TaskListProps {
   onPageChange: (page: number) => void
   onCreateTask: () => void
   onEditTask?: (task: TaskSummary) => void
+  onCategoryFilter?: (categoryId: string) => void
 }
 
 export function TaskList({
@@ -26,6 +27,7 @@ export function TaskList({
   onPageChange,
   onCreateTask,
   onEditTask,
+  onCategoryFilter,
 }: TaskListProps) {
   const totalPages = Math.ceil(total / limit)
 
@@ -47,7 +49,7 @@ export function TaskList({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onEdit={onEditTask} />
+          <TaskCard key={task.id} task={task} onEdit={onEditTask} onCategoryFilter={onCategoryFilter} />
         ))}
       </div>
 

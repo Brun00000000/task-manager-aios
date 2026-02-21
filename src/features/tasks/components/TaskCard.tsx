@@ -43,9 +43,10 @@ function isOverdue(task: TaskSummary): boolean {
 interface TaskCardProps {
   task: TaskSummary
   onEdit?: (task: TaskSummary) => void
+  onCategoryFilter?: (categoryId: string) => void
 }
 
-export function TaskCard({ task, onEdit }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onCategoryFilter }: TaskCardProps) {
   const overdue = isOverdue(task)
   const priority = priorityConfig[task.priority]
 
@@ -192,9 +193,17 @@ export function TaskCard({ task, onEdit }: TaskCardProps) {
       {task.categories.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {task.categories.map((cat) => (
-            <span
+            <button
               key={cat.id}
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onCategoryFilter?.(cat.id)
+              }}
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity',
+                onCategoryFilter ? 'hover:opacity-70 cursor-pointer' : 'cursor-default'
+              )}
               style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
             >
               <span
@@ -202,7 +211,7 @@ export function TaskCard({ task, onEdit }: TaskCardProps) {
                 style={{ backgroundColor: cat.color }}
               />
               {cat.name}
-            </span>
+            </button>
           ))}
         </div>
       )}

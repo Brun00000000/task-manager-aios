@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import {
@@ -27,15 +26,10 @@ import {
 import { taskCreateSchema, type TaskCreate } from '@/features/tasks/schemas/task.schema'
 import { useCreateTask } from '@/features/tasks/hooks/useCreateTask'
 import { useUpdateTask } from '@/features/tasks/hooks/useUpdateTask'
+import { CategoryMultiSelect } from './CategoryMultiSelect'
 import type { TaskSummary } from '@/lib/repositories/TaskRepository'
 
 type TaskCreateInput = z.input<typeof taskCreateSchema>
-
-interface Category {
-  id: string
-  name: string
-  color: string
-}
 
 interface TaskDrawerProps {
   open: boolean
@@ -48,17 +42,6 @@ export function TaskDrawer({ open, onOpenChange, task }: TaskDrawerProps) {
   const { mutateAsync: createTask, isPending: isCreating } = useCreateTask()
   const { mutateAsync: updateTask, isPending: isUpdating } = useUpdateTask()
   const isPending = isCreating || isUpdating
-
-  const { data: categoriesData } = useQuery<{ data: Category[] }>({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const res = await fetch('/api/categories')
-      if (!res.ok) throw new Error('Failed to fetch categories')
-      return res.json()
-    },
-    enabled: open,
-  })
-  const categories = categoriesData?.data ?? []
 
   const {
     register,
@@ -94,16 +77,6 @@ export function TaskDrawer({ open, onOpenChange, task }: TaskDrawerProps) {
   const selectedCategoryIds = watch('category_ids') ?? []
   const watchedPriority = watch('priority')
   const watchedStatus = watch('status')
-
-  function toggleCategory(id: string) {
-    const current = selectedCategoryIds
-    const next = current.includes(id)
-      ? current.filter((c) => c !== id)
-      : current.length < 5
-      ? [...current, id]
-      : current
-    setValue('category_ids', next)
-  }
 
   async function onSubmit(data: TaskCreate) {
     try {
@@ -205,42 +178,16 @@ export function TaskDrawer({ open, onOpenChange, task }: TaskDrawerProps) {
           )}
 
           {/* Categorias */}
-          {categories.length > 0 && (
-            <div className="flex flex-col gap-1.5">
-              <Label>
-                Categorias{' '}
-                <span className="text-xs text-muted-foreground">(máx. 5)</span>
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => {
-                  const selected = selectedCategoryIds.includes(cat.id)
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => toggleCategory(cat.id)}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
-                      style={
-                        selected
-                          ? {
-                              backgroundColor: `${cat.color}25`,
-                              borderColor: cat.color,
-                              color: cat.color,
-                            }
-                          : {}
-                      }
-                    >
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                      {cat.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+          <div className="flex flex-col gap-1.5">
+            <Label>
+              Categorias{' '}
+              <span className="text-xs text-muted-foreground">(máx. 5)</span>
+            </Label>
+            <CategoryMultiSelect
+              value={selectedCategoryIds}
+              onChange={(ids) => setValue('category_ids', ids)}
+            />
+          </div>
 
           <SheetFooter className="pt-2">
             <Button
