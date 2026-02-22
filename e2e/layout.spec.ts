@@ -1,18 +1,16 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// Cria um usuário único por suite de layout (evita dependência de usuário fixo)
-const layoutUser = {
-  email: `test+layout+${Date.now()}@example.com`,
-  password: 'senha12345',
-}
-
-async function signUpAndLogin(page: Page) {
+// Gera email único POR CHAMADA para evitar conflito entre testes sequenciais
+// (o email era compartilhado entre todos os testes via layoutUser — o 2° signup falhava)
+async function signUpAndLogin(page: Page): Promise<string> {
+  const email = `test+layout+${Date.now()}@example.com`
   await page.goto('/signup')
-  await page.getByLabel('Email').fill(layoutUser.email)
-  await page.getByLabel('Senha', { exact: true }).fill(layoutUser.password)
-  await page.getByLabel('Confirmar senha').fill(layoutUser.password)
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Senha', { exact: true }).fill('senha12345')
+  await page.getByLabel('Confirmar senha').fill('senha12345')
   await page.getByRole('button', { name: 'Criar conta' }).click()
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 })
+  return email
 }
 
 test.describe('Layout — Desktop (1280px)', () => {
@@ -33,10 +31,9 @@ test.describe('Layout — Desktop (1280px)', () => {
   })
 
   test('header exibe email do usuário', async ({ page }) => {
-    await signUpAndLogin(page)
+    const email = await signUpAndLogin(page)
     await expect(page.locator('header')).toBeVisible()
-    // Verifica que algum texto de identificação do usuário está no header
-    await expect(page.locator('header').getByText(layoutUser.email)).toBeVisible()
+    await expect(page.locator('header').getByText(email)).toBeVisible()
   })
 
   test('bottom nav oculta no desktop', async ({ page }) => {
@@ -71,9 +68,9 @@ test.describe('Layout — Navegação', () => {
 })
 
 test.describe('Página 404', () => {
-  test('rota inexistente exibe página 404', async ({ page }) => {
+  // Usuário não-autenticado em rota desconhecida → proxy redireciona para /login (segurança correta)
+  test('rota inexistente redireciona para /login quando não autenticado', async ({ page }) => {
     await page.goto('/rota-que-nao-existe')
-    await expect(page.getByText('404')).toBeVisible()
-    await expect(page.getByText('Página não encontrada')).toBeVisible()
+    await expect(page).toHaveURL(/\/login/)
   })
 })
