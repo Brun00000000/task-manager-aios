@@ -15,10 +15,19 @@ function isPublicRoute(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Se as variáveis de ambiente não estão configuradas, passa sem autenticação
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('[proxy] Missing Supabase env vars')
+    return supabaseResponse
+  }
+
+  let user = null
+
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -31,13 +40,16 @@ export async function proxy(request: NextRequest) {
           )
         },
       },
-    }
-  )
+    })
 
-  // IMPORTANTE: getUser() valida o JWT no servidor (não usa cache como getSession())
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    // IMPORTANTE: getUser() valida o JWT no servidor (não usa cache como getSession())
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (error) {
+    // Se Supabase não está acessível, trata usuário como não autenticado
+    // e permite acesso a rotas públicas
+    console.error('[proxy] Supabase auth error:', error)
+  }
 
   const pathname = request.nextUrl.pathname
   const isAuth = AUTH_ROUTES.some((r) => pathname.startsWith(r))
