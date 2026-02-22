@@ -2,7 +2,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function TaskSkeleton() {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm">
+    <div
+      role="status"
+      aria-label="Carregando tarefa..."
+      className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm"
+    >
+      <span className="sr-only">Carregando tarefa...</span>
       <div className="flex items-start justify-between gap-2">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-5 w-16 shrink-0" />

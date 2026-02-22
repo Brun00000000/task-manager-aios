@@ -113,11 +113,20 @@ export function TaskCard({ task, onEdit, onCategoryFilter }: TaskCardProps) {
 
   return (
     <div
+      role="article"
+      aria-label={task.title}
       className={cn(
         'group flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-sm transition-colors cursor-pointer hover:bg-accent/50',
         overdue && 'border-red-300 bg-red-50/30'
       )}
       onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+          e.preventDefault()
+          handleCardClick()
+        }
+      }}
+      tabIndex={0}
     >
       <div className="flex items-start justify-between gap-2">
         {editingTitle ? (
@@ -128,15 +137,17 @@ export function TaskCard({ task, onEdit, onCategoryFilter }: TaskCardProps) {
             onBlur={saveTitleEdit}
             onKeyDown={handleTitleKeyDown}
             onClick={(e) => e.stopPropagation()}
+            aria-label="Editar título da tarefa"
             className="flex-1 rounded border bg-background px-2 py-0.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
           />
         ) : (
-          <p
-            className="flex-1 font-medium leading-snug line-clamp-2 hover:underline decoration-dotted cursor-text"
+          <button
+            className="flex-1 text-left font-medium leading-snug line-clamp-2 hover:underline decoration-dotted cursor-text focus-visible:outline-none focus-visible:underline"
             onClick={startTitleEdit}
+            aria-label={`Editar título: ${task.title}`}
           >
             {task.title}
-          </p>
+          </button>
         )}
 
         <div className="flex shrink-0 items-center gap-1">
@@ -176,7 +187,10 @@ export function TaskCard({ task, onEdit, onCategoryFilter }: TaskCardProps) {
 
         <div onClick={(e) => e.stopPropagation()}>
           <Select value={task.status} onValueChange={handleStatusChange}>
-            <SelectTrigger className="h-6 w-auto border-0 bg-muted px-1.5 py-0 text-xs font-medium shadow-none focus:ring-0">
+            <SelectTrigger
+              className="h-6 w-auto border-0 bg-muted px-1.5 py-0 text-xs font-medium shadow-none focus:ring-0"
+              aria-label="Status da tarefa"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -200,6 +214,7 @@ export function TaskCard({ task, onEdit, onCategoryFilter }: TaskCardProps) {
                 e.stopPropagation()
                 onCategoryFilter?.(cat.id)
               }}
+              aria-label={onCategoryFilter ? `Filtrar por categoria: ${cat.name}` : cat.name}
               className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity',
                 onCategoryFilter ? 'hover:opacity-70 cursor-pointer' : 'cursor-default'

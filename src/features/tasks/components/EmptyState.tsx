@@ -12,7 +12,7 @@ export function EmptyState({ onCreateTask }: EmptyStateProps) {
         <ClipboardList className="h-8 w-8 text-muted-foreground" />
       </div>
       <div>
-        <p className="text-lg font-semibold">Nenhuma tarefa ainda</p>
+        <h2 className="text-lg font-semibold">Nenhuma tarefa ainda</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Comece criando sua primeira tarefa para organizar seu trabalho.
         </p>

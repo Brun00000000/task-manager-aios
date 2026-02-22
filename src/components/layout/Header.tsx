@@ -21,7 +21,7 @@ export async function Header() {
       <span className="font-semibold text-gray-900 md:hidden">Task Manager</span>
       <div className="flex items-center gap-3 ml-auto">
         <span className="hidden sm:block text-sm text-gray-500">{displayName}</span>
-        <Avatar className="h-8 w-8">
+        <Avatar className="h-8 w-8" aria-hidden="true">
           <AvatarFallback className="text-xs bg-blue-100 text-blue-700">{initials}</AvatarFallback>
         </Avatar>
         <LogoutButton />

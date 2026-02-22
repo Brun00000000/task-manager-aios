@@ -73,7 +73,8 @@ export function CategoryList() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-3">
+      <div role="status" aria-label="Carregando categorias..." className="flex flex-col gap-3">
+        <span className="sr-only">Carregando categorias...</span>
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-14 w-full rounded-lg" />
         ))}
@@ -118,8 +119,9 @@ export function CategoryList() {
                 size="sm"
                 className="h-7 w-7 p-0"
                 onClick={() => openEdit(cat)}
+                aria-label={`Editar categoria ${cat.name}`}
               >
-                <Pencil className="h-3.5 w-3.5" />
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
               </Button>
               <Button
                 variant="ghost"
@@ -127,8 +129,9 @@ export function CategoryList() {
                 className="h-7 w-7 p-0 hover:text-destructive"
                 disabled={isDeleting}
                 onClick={() => handleDeleteClick(cat)}
+                aria-label={`Excluir categoria ${cat.name}`}
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               </Button>
             </div>
           </div>

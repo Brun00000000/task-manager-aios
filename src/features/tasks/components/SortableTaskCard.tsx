@@ -30,9 +30,8 @@ export function SortableTaskCard({ task, onEdit, onCategoryFilter }: SortableTas
       <button
         {...attributes}
         {...listeners}
-        className="mt-4 shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover/sortable:opacity-100 hover:bg-muted active:cursor-grabbing"
-        aria-label="Arrastar para reordenar"
-        tabIndex={-1}
+        className="mt-4 shrink-0 cursor-grab touch-none rounded p-0.5 text-muted-foreground opacity-0 transition-opacity group-hover/sortable:opacity-100 hover:bg-muted active:cursor-grabbing focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`Arrastar para reordenar: ${task.title}`}
       >
         <GripVertical className="h-4 w-4" />
       </button>
