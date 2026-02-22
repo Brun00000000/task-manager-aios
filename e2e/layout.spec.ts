@@ -9,7 +9,7 @@ const layoutUser = {
 async function signUpAndLogin(page: Page) {
   await page.goto('/signup')
   await page.getByLabel('Email').fill(layoutUser.email)
-  await page.getByLabel('Senha').fill(layoutUser.password)
+  await page.getByLabel('Senha', { exact: true }).fill(layoutUser.password)
   await page.getByLabel('Confirmar senha').fill(layoutUser.password)
   await page.getByRole('button', { name: 'Criar conta' }).click()
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 })
