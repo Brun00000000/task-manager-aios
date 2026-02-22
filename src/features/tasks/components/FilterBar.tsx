@@ -38,13 +38,15 @@ function MultiToggle<T extends string>({
   options,
   selected,
   onToggle,
+  groupLabel,
 }: {
   options: { value: T; label: string }[]
   selected: T[]
   onToggle: (value: T) => void
+  groupLabel: string
 }) {
   return (
-    <div className="flex flex-wrap gap-1">
+    <div role="group" aria-label={groupLabel} className="flex flex-wrap gap-1">
       {options.map((opt) => {
         const active = selected.includes(opt.value)
         return (
@@ -52,6 +54,7 @@ function MultiToggle<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onToggle(opt.value)}
+            aria-pressed={active}
             className={cn(
               'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
               active
@@ -92,44 +95,47 @@ export function FilterBar({
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <Input
           placeholder="Buscar tarefas..."
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-8"
+          aria-label="Buscar tarefas"
         />
       </div>
 
       <div className="flex flex-wrap items-start gap-4">
         {/* Status */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-muted-foreground">Status</span>
+          <span className="text-xs font-medium text-muted-foreground" aria-hidden="true">Status</span>
           <MultiToggle
             options={STATUSES}
             selected={filters.status}
             onToggle={onToggleStatus}
+            groupLabel="Filtrar por status"
           />
         </div>
 
         {/* Prioridade */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-muted-foreground">Prioridade</span>
+          <span className="text-xs font-medium text-muted-foreground" aria-hidden="true">Prioridade</span>
           <MultiToggle
             options={PRIORITIES}
             selected={filters.priority}
             onToggle={onTogglePriority}
+            groupLabel="Filtrar por prioridade"
           />
         </div>
 
         {/* Prazo */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-muted-foreground">Prazo</span>
+          <span className="text-xs font-medium text-muted-foreground" aria-hidden="true">Prazo</span>
           <Select
             value={filters.due ?? ''}
             onValueChange={(v) => onSetDue(v === '' ? undefined : (v as DueFilter))}
           >
-            <SelectTrigger className="h-7 w-36 text-xs">
+            <SelectTrigger className="h-7 w-36 text-xs" aria-label="Filtrar por prazo">
               <SelectValue placeholder="Qualquer" />
             </SelectTrigger>
             <SelectContent>
@@ -146,8 +152,8 @@ export function FilterBar({
         {/* Categoria */}
         {categoriesData && categoriesData.data && categoriesData.data.length > 0 && (
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Categoria</span>
-            <div className="flex flex-wrap gap-1">
+            <span className="text-xs font-medium text-muted-foreground" aria-hidden="true">Categoria</span>
+            <div role="group" aria-label="Filtrar por categoria" className="flex flex-wrap gap-1">
               {categoriesData.data.map((cat) => {
                 const active = filters.category_id === cat.id
                 return (
@@ -155,13 +161,15 @@ export function FilterBar({
                     key={cat.id}
                     type="button"
                     onClick={() => onToggleCategory(cat.id)}
+                    aria-pressed={active}
+                    aria-label={`${cat.name}${active ? ' (ativo)' : ''}`}
                     className={cn(
                       'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-opacity',
                       active ? 'opacity-100 outline outline-2 outline-offset-1' : 'opacity-60 hover:opacity-80'
                     )}
                     style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
                   >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <span className="h-1.5 w-1.5 rounded-full" aria-hidden="true" style={{ backgroundColor: cat.color }} />
                     {cat.name}
                   </button>
                 )

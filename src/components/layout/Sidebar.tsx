@@ -13,13 +13,14 @@ export function Sidebar() {
       <div className="h-14 flex items-center px-4 border-b border-gray-100">
         <span className="font-semibold text-gray-900">Task Manager</span>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1" aria-label="Navegação principal">
         {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link
               key={href}
               href={href}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                 isActive
