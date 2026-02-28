@@ -7,6 +7,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  // Supabase free tier pode ser lento em CI (20-30s por chamada de signUp)
+  // 90s garante: ~3s form + ~30s signUp + ~2s navegação + margem
+  timeout: 90000,
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
