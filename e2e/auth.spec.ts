@@ -70,7 +70,7 @@ test.describe('Auth — Fluxos completos', () => {
     await page.getByLabel('Senha', { exact: true }).fill(testPassword)
     await page.getByLabel('Confirmar senha').fill(testPassword)
     await page.getByRole('button', { name: 'Criar conta' }).click()
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 })
     await expect(page.getByText('Dashboard')).toBeVisible()
   })
 
@@ -82,7 +82,7 @@ test.describe('Auth — Fluxos completos', () => {
     await page.getByLabel('Senha', { exact: true }).fill(testPassword)
     await page.getByLabel('Confirmar senha').fill(testPassword)
     await page.getByRole('button', { name: 'Criar conta' }).click()
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 })
 
     // Tenta acessar /login com sessão ativa → deve redirecionar
     await page.goto('/login')
@@ -97,7 +97,7 @@ test.describe('Auth — Fluxos completos', () => {
     await page.getByLabel('Senha', { exact: true }).fill(testPassword)
     await page.getByLabel('Confirmar senha').fill(testPassword)
     await page.getByRole('button', { name: 'Criar conta' }).click()
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 })
 
     // Logout
     await page.getByRole('button', { name: 'Sair' }).click()

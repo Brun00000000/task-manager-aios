@@ -23,20 +23,25 @@ export function useLogin() {
     setIsLoading(true)
     setErrorMessage(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    })
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
 
-    if (error) {
-      setErrorMessage(mapAuthError(error))
+      if (error) {
+        setErrorMessage(mapAuthError(error))
+        setIsLoading(false)
+        return
+      }
+
+      router.push('/dashboard')
+      router.refresh()
+    } catch {
+      setErrorMessage('Ocorreu um erro. Tente novamente.')
       setIsLoading(false)
-      return
     }
-
-    router.push('/dashboard')
-    router.refresh()
   }
 
   return { login, errorMessage, isLoading }
