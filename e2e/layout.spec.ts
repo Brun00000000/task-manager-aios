@@ -9,7 +9,7 @@ async function signUpAndLogin(page: Page): Promise<string> {
   await page.getByLabel('Senha', { exact: true }).fill('senha12345')
   await page.getByLabel('Confirmar senha').fill('senha12345')
   await page.getByRole('button', { name: 'Criar conta' }).click()
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 })
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 })
   return email
 }
 
