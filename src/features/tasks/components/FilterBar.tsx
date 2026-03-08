@@ -132,14 +132,14 @@ export function FilterBar({
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground" aria-hidden="true">Prazo</span>
           <Select
-            value={filters.due ?? ''}
-            onValueChange={(v) => onSetDue(v === '' ? undefined : (v as DueFilter))}
+            value={filters.due ?? 'all'}
+            onValueChange={(v) => onSetDue(v === 'all' ? undefined : (v as DueFilter))}
           >
             <SelectTrigger className="h-7 w-36 text-xs" aria-label="Filtrar por prazo">
               <SelectValue placeholder="Qualquer" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Qualquer</SelectItem>
+              <SelectItem value="all">Qualquer</SelectItem>
               {DUE_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value} className="text-xs">
                   {opt.label}
