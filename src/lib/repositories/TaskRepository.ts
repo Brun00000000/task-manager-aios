@@ -212,7 +212,11 @@ export class TaskRepository {
     }
 
     if (category_ids !== undefined) {
-      await this.supabase.from('task_categories').delete().eq('task_id', id)
+      const { error: delErr } = await this.supabase
+        .from('task_categories')
+        .delete()
+        .eq('task_id', id)
+      if (delErr) throw new Error(`TaskRepository.update categories delete failed: ${delErr.message}`)
       if (category_ids.length > 0) {
         const { error: catErr } = await this.supabase
           .from('task_categories')
