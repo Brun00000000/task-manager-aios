@@ -52,27 +52,28 @@ export function TaskDrawer({ open, onOpenChange, task }: TaskDrawerProps) {
     formState: { errors },
   } = useForm<TaskCreateInput, unknown, TaskCreate>({
     resolver: zodResolver(taskCreateSchema),
-    defaultValues: {
-      priority: 'medium',
-      status: 'todo',
-      category_ids: [],
-    },
+    defaultValues: task
+      ? {
+          title: task.title,
+          description: task.description ?? '',
+          due_date: task.due_date ?? '',
+          priority: task.priority,
+          status: task.status,
+          category_ids: task.categories.map((c) => c.id),
+        }
+      : {
+          priority: 'medium',
+          status: 'todo',
+          category_ids: [],
+        },
   })
 
+  // Only reset on close — initial values come from defaultValues (set correctly via key prop)
   useEffect(() => {
-    if (open && task) {
-      reset({
-        title: task.title,
-        description: task.description ?? '',
-        due_date: task.due_date ?? '',
-        priority: task.priority,
-        status: task.status,
-        category_ids: task.categories.map((c) => c.id),
-      })
-    } else if (!open) {
+    if (!open) {
       reset({ priority: 'medium', status: 'todo', category_ids: [] })
     }
-  }, [open, task, reset])
+  }, [open, reset])
 
   const selectedCategoryIds = watch('category_ids') ?? []
   const watchedPriority = watch('priority')

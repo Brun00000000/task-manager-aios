@@ -133,6 +133,7 @@ export function TasksContent() {
       />
 
       <TaskDrawer
+        key={editingTask?.id ?? 'new'}
         open={drawerOpen}
         onOpenChange={handleDrawerClose}
         task={editingTask}
